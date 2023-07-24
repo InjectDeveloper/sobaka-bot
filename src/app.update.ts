@@ -1,6 +1,7 @@
 import {Action, Command, Ctx, Hears, InjectBot, On, Start, Update} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
 import {PrismaService} from "./provider/database/prisma/provider.service";
+import * as QuickChart from 'quickchart-js'
 
 @Update()
 export class AppUpdate {
@@ -20,7 +21,7 @@ export class AppUpdate {
             {
                 command: '/me',
                 description: 'Статистика игрока'
-            }
+            },
         ])
     }
 
@@ -77,7 +78,14 @@ export class AppUpdate {
         let lier = `` as any
         let lies = 0
         const users = await this.prismaService.user.findMany()
+
+        let labels = []
+        let datasets = [
+            { label: 'Кол-во фотографий', data: [], backgroundColor: '#cfcfcf'},
+            { label: 'Кол-во собак', data: [], backgroundColor: '#017d01'}
+        ]
         for (let i = 0; i < users.length; i++) {
+            labels.push(users[i].username)
             const userLies = await this.prismaService.dog.findMany({
                 where: {
                     userId: users[i].id,
@@ -95,13 +103,65 @@ export class AppUpdate {
                     isApproved: true
                 }
             })
-            if (userTrues.length > toperCount) {
-                toper = users[i].username
-                toperCount = userTrues.length
+            let tr = 0
+            for (let j = 0; j < userTrues.length; j++) {
+                tr += userTrues[j].amount
             }
+            if (tr > toperCount) {
+                toper = users[i].username
+                toperCount = tr
+            }
+
+            datasets[0].data.push(userLies.length + userTrues.length)
+            datasets[1].data.push(tr)
         }
 
-        let text = `Общая статистика:`
+        // @ts-ignore
+        const myChart = new QuickChart()
+        myChart.setConfig({
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: datasets,
+            },
+            options: {
+                legend: {
+                    labels: {
+                        fontSize: 12,
+                        fontStyle: 'normal',
+                        fontColor: '#f5f5f5',
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Общая статистика',
+                    fontSize: 20,
+                    fontColor: '#ffffff',
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            ticks: {
+                                beginAtZero: true,
+                                fontColor: '#f5f5f5',
+                            },
+                        },
+                    ],
+                    xAxes: [
+                        {
+                            ticks: {
+                                fontFamily: 'Serif',
+                                fontStyle: 'Mono',
+                                fontColor: '#f5f5f5',
+                            },
+                        },
+                    ],
+                },
+            }
+        })
+        myChart.setBackgroundColor('#1c1c1c')
+        console.log(myChart.getUrl())
+        let text = `Общая статистика`
         text += `\n\n`
         text += `Всего фотографий - <b>${allImages.length}</b>\n`
         text += `Всего принятых фотографий - <b>${approvedImages}</b>\n`
@@ -109,7 +169,8 @@ export class AppUpdate {
         text += `Всего собак - <b>${dogs}</b>\n\n`
         text += `<b>ЛУЧШИЙ НА ДАННЫЙ МОМЕНТ - ${toper}, он скинул ${toperCount} шт. собак</b>\n\n`
         text += `Главный врун - ${lier}, на его счету - ${lies} отклонённых фотографий.`
-        await ctx.replyWithHTML(text, {
+        await ctx.sendPhoto(myChart.getUrl(), {
+            caption: text,
             parse_mode: 'HTML'
         })
     }
