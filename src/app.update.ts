@@ -1,4 +1,4 @@
-import {Action, Command, Ctx, Hears, InjectBot, On, Start, Update} from "nestjs-telegraf";
+import {Action, Command, Ctx, InjectBot, On, Start, Update} from "nestjs-telegraf";
 import {Context, Telegraf} from "telegraf";
 import {PrismaService} from "./provider/database/prisma/provider.service";
 import * as QuickChart from 'quickchart-js'
@@ -59,6 +59,29 @@ export class AppUpdate {
 
     @Command('stat')
     async stat(@Ctx() ctx: Context) {
+        const user = await this.prismaService.user.findUnique({
+            where: {
+                id: ctx.from.id.toString()
+            }
+        })
+        if (!user) {
+            await this.prismaService.user.create({
+                data: {
+                    id: ctx.from.id.toString(),
+                    username: ctx.from.username
+                }
+            })
+        } else if (user.username != ctx.from.username) {
+            await this.prismaService.user.update({
+                where: {
+                    id: ctx.from.id.toString()
+                },
+                data: {
+                    username: ctx.from.username
+                }
+            })
+        }
+
         const allImages = await this.prismaService.dog.findMany()
         let dogs = 0
         let approvedImages = 0
@@ -177,6 +200,28 @@ export class AppUpdate {
 
     @Command('me')
     async me(@Ctx() ctx: Context) {
+        const user = await this.prismaService.user.findUnique({
+            where: {
+                id: ctx.from.id.toString()
+            }
+        })
+        if (!user) {
+            await this.prismaService.user.create({
+                data: {
+                    id: ctx.from.id.toString(),
+                    username: ctx.from.username
+                }
+            })
+        } else if (user.username != ctx.from.username) {
+            await this.prismaService.user.update({
+                where: {
+                    id: ctx.from.id.toString()
+                },
+                data: {
+                    username: ctx.from.username
+                }
+            })
+        }
         const allImages = await this.prismaService.dog.findMany({
             where: {
                 userId: ctx.from.id.toString()
@@ -208,6 +253,29 @@ export class AppUpdate {
 
     @On('photo')
     async photo(@Ctx() ctx: Context) {
+        const user = await this.prismaService.user.findUnique({
+            where: {
+                id: ctx.from.id.toString()
+            }
+        })
+        if (!user) {
+            await this.prismaService.user.create({
+                data: {
+                    id: ctx.from.id.toString(),
+                    username: ctx.from.username
+                }
+            })
+        } else if (user.username != ctx.from.username) {
+            await this.prismaService.user.update({
+                where: {
+                    id: ctx.from.id.toString()
+                },
+                data: {
+                    username: ctx.from.username
+                }
+            })
+        }
+
         // @ts-ignore
         const caption = await ctx.message.caption as string
         if (!caption || !caption.match(/[С-с]обака [0-9]*[.,]?[0-9]/)) {
@@ -245,6 +313,29 @@ export class AppUpdate {
 
     @Action(/.*/)
     async callback(@Ctx() ctx: Context) {
+        const user = await this.prismaService.user.findUnique({
+            where: {
+                id: ctx.from.id.toString()
+            }
+        })
+        if (!user) {
+            await this.prismaService.user.create({
+                data: {
+                    id: ctx.from.id.toString(),
+                    username: ctx.from.username
+                }
+            })
+        } else if (user.username != ctx.from.username) {
+            await this.prismaService.user.update({
+                where: {
+                    id: ctx.from.id.toString()
+                },
+                data: {
+                    username: ctx.from.username
+                }
+            })
+        }
+
         // @ts-ignore
         const callback = ctx.callbackQuery.data as string
         const dogId = callback.split('_')[0]
